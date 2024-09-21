@@ -1,39 +1,48 @@
 package xjwt
 
 import (
-	"crypto/rand"
-	"crypto/rsa"
 	"fmt"
+	"time"
 
 	jwtware "github.com/gofiber/contrib/jwt"
 	"github.com/gofiber/fiber/v2"
 	"github.com/golang-jwt/jwt/v5"
 )
 
-var (
-	key *rsa.PrivateKey
-)
+type S struct {
+	Secret string
+}
 
-var (
-	default_config = jwtware.Config{
+func (x *S) DefaultMiddleware() func(*fiber.Ctx) error {
+	return jwtware.New(jwtware.Config{
 		KeyFunc: func(t *jwt.Token) (interface{}, error) {
 			if t.Method.Alg() != jwtware.HS256 {
 				return nil, fmt.Errorf("unexpected jwt signing method=%v", t.Header["alg"])
 			}
 
-			if key == nil {
-				key, _ = rsa.GenerateKey(rand.Reader, 2048)
-			}
-
-			return key.Public(), nil
+			return []byte(x.Secret), nil
 		},
-	}
-)
+	})
+}
 
-var (
-	DefaultMiddleware = jwtware.New(default_config)
+func (x *S) Middleware(config ...jwtware.Config) func(*fiber.Ctx) error {
+	return jwtware.New(config...)
+}
 
-	Middleware = func(config ...jwtware.Config) func(*fiber.Ctx) error {
-		return jwtware.New(config...)
+func (x *S) Generate(id string) (string, error) {
+	claims := jwt.MapClaims{
+		"id":    id,
+		"exp":   time.Now().Add(time.Hour * 72).Unix(),
+		"admin": true,
 	}
-)
+
+	t := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
+
+	token, err := t.SignedString([]byte(x.Secret))
+
+	if err != nil {
+		return "", err
+	}
+
+	return token, nil
+}
