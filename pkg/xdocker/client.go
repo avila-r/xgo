@@ -10,12 +10,16 @@ import (
 
 type DockerClient struct {
 	client *client.Client
+	ctx    context.Context
 }
 
 func NewClient(options ...client.Opt) *DockerClient {
 	c, _ := client.NewClientWithOpts(options...)
 
-	return &DockerClient{c}
+	return &DockerClient{
+		client: c,
+		ctx:    context.Background(),
+	}
 }
 
 func (c *DockerClient) Close() {
@@ -23,7 +27,7 @@ func (c *DockerClient) Close() {
 }
 
 func (c *DockerClient) ListAll() error {
-	containers, err := c.client.ContainerList(context.Background(), container.ListOptions{All: true})
+	containers, err := c.client.ContainerList(c.ctx, container.ListOptions{All: true})
 
 	if err != nil {
 		return err
