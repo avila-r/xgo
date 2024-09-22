@@ -2,8 +2,9 @@ package xdocker
 
 import (
 	"context"
-	"fmt"
+	"errors"
 
+	"github.com/docker/docker/api/types"
 	"github.com/docker/docker/api/types/container"
 	"github.com/docker/docker/client"
 )
@@ -26,16 +27,30 @@ func (c *DockerClient) Close() {
 	c.client.Close()
 }
 
-func (c *DockerClient) ListAll() error {
+func (c *DockerClient) ListAll() ([]types.Container, error) {
+	return c.client.ContainerList(c.ctx, container.ListOptions{All: true})
+}
+
+func (c *DockerClient) GetById(id string) (*types.Container, error) {
 	containers, err := c.client.ContainerList(c.ctx, container.ListOptions{All: true})
 
 	if err != nil {
-		return err
+		return nil, err
 	}
+
+	var (
+		container *types.Container
+	)
 
 	for _, ctr := range containers {
-		fmt.Printf("%s %s (status: %s)\n", ctr.ID, ctr.Image, ctr.Status)
+		if ctr.ID == id {
+			container = &ctr
+		}
 	}
 
-	return nil
+	if container == nil {
+		return nil, errors.New("container not found")
+	}
+
+	return container, nil
 }
