@@ -32,6 +32,7 @@ require (
 	github.com/go-redis/redismock/v9 v9.2.0 // indirect
 	github.com/gogo/protobuf v1.3.2 // indirect
 	github.com/google/uuid v1.6.0 // indirect
+	github.com/icza/gog v0.0.0-20240923173237-46c03a2ebf76 // indirect
 	github.com/klauspost/compress v1.17.9 // indirect
 	github.com/leodido/go-urn v1.4.0 // indirect
 	github.com/mattn/go-colorable v0.1.13 // indirect
