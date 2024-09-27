@@ -5,6 +5,7 @@ import (
 	"log"
 	"time"
 
+	"github.com/icza/gog"
 	"github.com/redis/go-redis/v9"
 )
 
@@ -18,7 +19,11 @@ func NewClient[T any](options *redis.Options) *Cacher[T] {
 
 // Returns true if ok, false otherwise
 func (c *Cacher[T]) Cache(i Insert[T]) bool {
-	json, _ := json.Marshal(i.Data)
+	json, err := json.Marshal(i.Data)
+
+	if err != nil {
+		return false
+	}
 
 	expiration := func() time.Duration {
 		if i.ExpirationTime < 0 {
@@ -28,12 +33,35 @@ func (c *Cacher[T]) Cache(i Insert[T]) bool {
 		return time.Minute * 10
 	}()
 
-	if err := c.server.Client.Set(c.server.Ctx, i.Key, json, expiration).Err(); err != nil {
+	if err := c.server.Client.Set(c.server.Ctx, i.Key, gog.First(json), expiration).Err(); err != nil {
 		log.Fatalf("error: %v", err.Error())
 		return false
 	}
 
 	return true
+}
+
+// Returns nil if ok, error otherwise
+func (c *Cacher[T]) CacheOrError(i Insert[T]) error {
+	json, err := json.Marshal(i.Data)
+
+	if err != nil {
+		return err
+	}
+
+	expiration := func() time.Duration {
+		if i.ExpirationTime < 0 {
+			return i.ExpirationTime
+		}
+
+		return time.Minute * 10
+	}()
+
+	if err := c.server.Client.Set(c.server.Ctx, i.Key, gog.First(json), expiration).Err(); err != nil {
+		return err
+	}
+
+	return nil
 }
 
 func (c *Cacher[T]) Uncache(q Query) (*T, error) {
