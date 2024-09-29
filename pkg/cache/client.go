@@ -27,6 +27,19 @@ func NewClient(options *redis.Options) *Client {
 	}
 }
 
+func (c *Client) Verify() error {
+	// Executes the PING command to check if the Redis server is available
+	status := c.Advanced.Ping(c.Ctx)
+
+	// Checks if there was an error
+	if status.Err() != nil {
+		return status.Err()
+	}
+
+	// Returns nil if ok
+	return nil
+}
+
 func (c *Client) Insert(i *Register) error {
 	if i.Key == "" {
 		return ErrNoProvidedKey
