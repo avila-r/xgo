@@ -2,12 +2,15 @@ package cache
 
 import "time"
 
-type Insert[T any] struct {
-	Key            string
-	Data           T
+type Register struct {
+	Key  string
+	Data any
+
+	// If 0, data won't have expiration time
 	ExpirationTime time.Duration
 }
 
 type Query struct {
-	Key string
+	Key    string
+	Result any
 }
