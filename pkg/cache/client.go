@@ -16,14 +16,14 @@ var (
 )
 
 type Client struct {
-	Client *redis.Client
-	Ctx    context.Context
+	Advanced *redis.Client
+	Ctx      context.Context
 }
 
 func NewClient(options *redis.Options) *Client {
 	return &Client{
-		Client: redis.NewClient(options),
-		Ctx:    context.Background(),
+		Advanced: redis.NewClient(options),
+		Ctx:      context.Background(),
 	}
 }
 
@@ -42,7 +42,7 @@ func (c *Client) Insert(i *Register) error {
 		return err
 	}
 
-	if err := c.Client.Set(c.Ctx, i.Key, json, i.ExpirationTime).Err(); err != nil {
+	if err := c.Advanced.Set(c.Ctx, i.Key, json, i.ExpirationTime).Err(); err != nil {
 		return err
 	}
 
@@ -54,7 +54,7 @@ func (c *Client) Get(q *Query) error {
 		return ErrNilQuery
 	}
 
-	v, err := c.Client.Get(c.Ctx, q.Key).Result()
+	v, err := c.Advanced.Get(c.Ctx, q.Key).Result()
 
 	if err != nil {
 		return err
@@ -76,7 +76,7 @@ func (c *Client) Cache(key string, v string, expiration ...time.Duration) error 
 		exp = expiration[0]
 	}
 
-	if err := c.Client.Set(c.Ctx, key, v, exp).Err(); err != nil {
+	if err := c.Advanced.Set(c.Ctx, key, v, exp).Err(); err != nil {
 		return err
 	}
 
@@ -84,5 +84,5 @@ func (c *Client) Cache(key string, v string, expiration ...time.Duration) error 
 }
 
 func (c *Client) Uncache(key string) (string, error) {
-	return c.Client.Get(c.Ctx, key).Result()
+	return c.Advanced.Get(c.Ctx, key).Result()
 }

@@ -28,8 +28,8 @@ func Test_Insert(t *testing.T) {
 
 	// Custom client
 	client := &cache.Client{
-		Client: c,
-		Ctx:    context.Background(),
+		Advanced: c,
+		Ctx:      context.Background(),
 	}
 
 	insert := cache.Register{
@@ -51,8 +51,8 @@ func Test_Query(t *testing.T) {
 
 	// Custom client
 	client := &cache.Client{
-		Client: c,
-		Ctx:    context.Background(),
+		Advanced: c,
+		Ctx:      context.Background(),
 	}
 
 	expected, _ := json.Marshal(v.Value)
@@ -93,8 +93,8 @@ func Test_Cache(t *testing.T) {
 	mock.ExpectSet(v.Key, v.Value, 0).SetVal("OK")
 
 	client := &cache.Client{
-		Client: c,
-		Ctx:    context.Background(),
+		Advanced: c,
+		Ctx:      context.Background(),
 	}
 
 	if err := client.Cache(v.Key, v.Value); err != nil {
@@ -112,8 +112,8 @@ func Test_Uncache(t *testing.T) {
 	mock.ExpectSet(v.Key, v.Value, 0).SetVal("OK")
 
 	client := &cache.Client{
-		Client: c,
-		Ctx:    context.Background(),
+		Advanced: c,
+		Ctx:      context.Background(),
 	}
 
 	if err := client.Cache(v.Key, v.Value); err != nil {
