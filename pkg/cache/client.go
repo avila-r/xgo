@@ -1,81 +1,88 @@
 package cache
 
 import (
+	"context"
 	"encoding/json"
-	"log"
+	"errors"
 	"time"
 
-	"github.com/icza/gog"
 	"github.com/redis/go-redis/v9"
 )
 
-type Cacher[T any] struct {
-	server *Server
+var (
+	ErrNoProvidedKey = errors.New("no key was provided at Insert{} request")
+	ErrInvalidData   = errors.New("invalid data was provided at Insert{} request")
+	ErrNilQuery      = errors.New("provided query must be non-nil")
+)
+
+type Client struct {
+	Client *redis.Client
+	Ctx    context.Context
 }
 
-func NewClient[T any](options *redis.Options) *Cacher[T] {
-	return &Cacher[T]{NewServer(options)}
+func NewClient(options *redis.Options) *Client {
+	return &Client{
+		Client: redis.NewClient(options),
+		Ctx:    context.Background(),
+	}
 }
 
-// Returns true if ok, false otherwise
-func (c *Cacher[T]) Cache(i Insert[T]) bool {
-	json, err := json.Marshal(i.Data)
-
-	if err != nil {
-		return false
+func (c *Client) Insert(i *Register) error {
+	if i.Key == "" {
+		return ErrNoProvidedKey
 	}
 
-	expiration := func() time.Duration {
-		if i.ExpirationTime < 0 {
-			return i.ExpirationTime
-		}
-
-		return time.Minute * 10
-	}()
-
-	if err := c.server.Client.Set(c.server.Ctx, i.Key, gog.First(json), expiration).Err(); err != nil {
-		log.Fatalf("error: %v", err.Error())
-		return false
+	if i.Data == nil {
+		return ErrInvalidData
 	}
 
-	return true
-}
-
-// Returns nil if ok, error otherwise
-func (c *Cacher[T]) CacheOrError(i Insert[T]) error {
 	json, err := json.Marshal(i.Data)
 
 	if err != nil {
 		return err
 	}
 
-	expiration := func() time.Duration {
-		if i.ExpirationTime < 0 {
-			return i.ExpirationTime
-		}
-
-		return time.Minute * 10
-	}()
-
-	if err := c.server.Client.Set(c.server.Ctx, i.Key, gog.First(json), expiration).Err(); err != nil {
+	if err := c.Client.Set(c.Ctx, i.Key, json, i.ExpirationTime).Err(); err != nil {
 		return err
 	}
 
 	return nil
 }
 
-func (c *Cacher[T]) Uncache(q Query) (*T, error) {
-	v, err := c.server.Client.Get(c.server.Ctx, q.Key).Result()
+func (c *Client) Get(q *Query) error {
+	if q == nil {
+		return ErrNilQuery
+	}
+
+	v, err := c.Client.Get(c.Ctx, q.Key).Result()
 
 	if err != nil {
-		return nil, err
+		return err
 	}
 
-	var response T
-
-	if err := json.Unmarshal([]byte(v), &response); err != nil {
-		return nil, err
+	if err := json.Unmarshal([]byte(v), &q.Result); err != nil {
+		return err
 	}
 
-	return &response, nil
+	return nil
+}
+
+func (c *Client) Cache(key string, v string, expiration ...time.Duration) error {
+	var exp time.Duration
+
+	if len(expiration) == 0 {
+		exp = 0
+	} else {
+		exp = expiration[0]
+	}
+
+	if err := c.Client.Set(c.Ctx, key, v, exp).Err(); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (c *Client) Uncache(key string) (string, error) {
+	return c.Client.Get(c.Ctx, key).Result()
 }
